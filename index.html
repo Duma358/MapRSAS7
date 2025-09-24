@@ -3,112 +3,130 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>S7 National Projects </title>
+  <title>S7 National Projects</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
     body { margin: 0; font-family: Arial, sans-serif; }
     #map { height: 100vh; width: 100vw; }
-    .popup-content {
-      max-width: 300px;
+    .popup-content { max-width: 300px; font-size: 14px; }
+    .popup-content h3 { margin: 0 0 8px; }
+    .popup-content p { margin: 4px 0; }
+    .symbol { font-size: 20px; margin-right: 5px; }
+
+    /* form */
+    #form-container {
+      position: absolute;
+      top: 10px; left: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      z-index: 1000;
+      width: 250px;
       font-size: 14px;
     }
-    .popup-content h3 {
-      margin: 0 0 8px;
-    }
-    .popup-content p {
+    #form-container h3 { margin-top: 0; }
+    #form-container input, #form-container textarea {
+      width: 100%;
       margin: 4px 0;
+      padding: 6px;
+      font-size: 13px;
     }
-    .symbol {
-      font-size: 20px;
-      margin-right: 5px;
+    #form-container button {
+      margin-top: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    const map = L.map('map').setView([-29.0, 24.0], 6); // Centered in South Africa
+  <!-- Submission form -->
+  <div id="form-container">
+    <h3>Submit Project</h3>
+    <form id="projectForm">
+      <input type="text" name="title" placeholder="Project Title" required />
+      <input type="text" name="province" placeholder="Province" required />
+      <input type="text" name="location" placeholder="Location" required />
+      <input type="number" step="any" name="lat" placeholder="Latitude" required />
+      <input type="number" step="any" name="lng" placeholder="Longitude" required />
+      <input type="text" name="symbol" placeholder="Emoji symbol (🏥, 💉…)" />
+      <textarea name="gap" placeholder="Gap"></textarea>
+      <textarea name="idea" placeholder="Idea"></textarea>
+      <textarea name="support" placeholder="Support"></textarea>
+      <textarea name="needs" placeholder="Needs"></textarea>
+      <button type="submit">Submit</button>
+    </form>
+    <small style="color:gray;">(New projects need approval before showing)</small>
+  </div>
 
-    // Add OpenStreetMap tile layer
+  <script>
+    // 🔑 Supabase setup
+    const { createClient } = supabase
+    const supabaseUrl = "https://fshohdcpoaxnbemnvibq.supabase.co"
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzaG9oZGNwb2F4bmJlbW52aWJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3MjE2NTMsImV4cCI6MjA3NDI5NzY1M30._OnvliwGL2doKOgPB8_spGM2_0okUQrhYQdldykbPTw"
+    const db = createClient(supabaseUrl, supabaseKey)
+
+    // 🌍 Map setup
+    const map = L.map('map').setView([-29.0, 24.0], 6) // South Africa center
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+    }).addTo(map)
 
-    const projects = [
-      {
-        title: "Pretoria Lifepod",
-        province: "Gauteng",
-        location: "Pretoria (Steve Biko Academic Hospital and Dr George Mukhari Academic Hospital)",
-        coordinates: [-25.7461, 28.1881],
-        symbol: "🏥",
-        gap: "No dedicated space, bed pressure. Unique to Gauteng: Increased coordination needs, more hospitals, more admin, not enough staff.",
-        idea: "Dedicated deceased donor management ICU bed. Possibility of centralising procurement coordination.",
-        support: "S7 Donors (HF, LottoStar, RGA), Anja Meyer (SATS)",
-        needs: "Institution connectors @ Steve Biko and George Mukhari Hospitals. Funding likely similar to TBH with increased concern for staffing budgets."
-      },
-      {
-        title: "Pre-dialysis Clinic - JHB",
-        province: "Gauteng",
-        location: "Johannesburg (Charlotte Maxeke Academic Hospital and Baragwanath Academic Hospital)",
-        coordinates: [-26.2041, 28.0473],
-        symbol: "💉",
-        gap: "Poor clinical planning for ESKD patients predicted to need dialysis, increasing burden later for system and patients.",
-        idea: "A specialised clinic to clinically and holistically prepare patients for ESKD, including dialysis and transplant (funding via medical aids, living donors).",
-        support: "Dr Wadee (Donald Gordon Medical Centre)",
-        needs: "Power players to advise and refine model and funding needs. Institution connectors at Bara and CMJAH."
-      },
-      {
-        title: "Support Group in TBH",
-        province: "Western Cape",
-        location: "Cape Town (Tygerberg Hospital)",
-        coordinates: [-33.9289, 18.4174],
-        symbol: "💬",
-        gap: "Absence of non-clinical advice or community for dialysis patients at TBH.",
-        idea: "Hospital-based team conducting regular needs assessments and connecting with the right partners to aid patients; foster patient conversations and community.",
-        support: "Sr Juta (TBH), ?Astellas",
-        needs: "Awaiting new model from Michael."
-      },
-      {
-        title: "Acute Brain Injury Unit - LVH",
-        province: "Eastern Cape",
-        location: "Port Elizabeth (Livingstone Hospital)",
-        coordinates: [-33.9608, 25.6022],
-        symbol: "🧠",
-        gap: "No bed space or staffing capacity to maintain adequate clinical control of patients with a poor prognosis that could become organ donors due to acute brain injury.",
-        idea: "A dedicated ICU bed or nurse for patients with a poor prognosis.",
-        support: "Dr Freecks (Livingstone Hospital)",
-        needs: "Power players to advise and refine the feasibility of the model and funding needs. Institution connectors in Eastern Cape."
-      },
-      {
-        title: "Community Engagement Program",
-        province: "Eastern Cape / National",
-        location: "Mthatha / National",
-        coordinates: [-31.5889, 28.7844],
-        symbol: "🧍🏾‍♀️",
-        gap: "Lack of on-the-ground understanding of cultural nuances, civilian voices, and mistrust of the healthcare system in previously oppressed communities.",
-        idea: "A national team of volunteers setting up 'indabas' to hear what communities think about ESKD risk factors, organ donation, and transplantation that can embed into decision-making bodies.",
-        support: "Just us right now ;)",
-        needs: "Buy-in from power players at SATS."
+    // 📌 Load approved projects
+    async function loadProjects() {
+      const { data, error } = await db
+        .from('projects')
+        .select('*')
+        .eq('approved', true)
+
+      if (error) {
+        console.error("Error loading projects:", error)
+        return
       }
-    ];
 
-    // Add markers
-    projects.forEach(proj => {
-      const popup = `
-        <div class="popup-content">
-          <h3><span class="symbol">${proj.symbol}</span>${proj.title}</h3>
-          <p><strong>Province:</strong> ${proj.province}</p>
-          <p><strong>Location:</strong> ${proj.location}</p>
-          <p><strong>Gap:</strong> ${proj.gap}</p>
-          <p><strong>Idea:</strong> ${proj.idea}</p>
-          <p><strong>Current Support:</strong> ${proj.support}</p>
-          <p><strong>Needs:</strong> ${proj.needs}</p>
-        </div>
-      `;
-      L.marker(proj.coordinates).addTo(map).bindPopup(popup);
-    });
+      data.forEach(proj => {
+        const popup = `
+          <div class="popup-content">
+            <h3><span class="symbol">${proj.symbol || ""}</span>${proj.title}</h3>
+            <p><strong>Province:</strong> ${proj.province || ""}</p>
+            <p><strong>Location:</strong> ${proj.location || ""}</p>
+            <p><strong>Gap:</strong> ${proj.gap || ""}</p>
+            <p><strong>Idea:</strong> ${proj.idea || ""}</p>
+            <p><strong>Support:</strong> ${proj.support || ""}</p>
+            <p><strong>Needs:</strong> ${proj.needs || ""}</p>
+          </div>
+        `
+        if (proj.lat && proj.lng) {
+          L.marker([proj.lat, proj.lng]).addTo(map).bindPopup(popup)
+        }
+      })
+    }
+
+    loadProjects()
+
+    // 📝 Handle submissions
+    document.getElementById('projectForm').addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const formData = new FormData(e.target)
+      const newProject = Object.fromEntries(formData.entries())
+
+      // Convert lat/lng to numbers
+      newProject.lat = parseFloat(newProject.lat)
+      newProject.lng = parseFloat(newProject.lng)
+
+      const { error } = await db.from('projects').insert([newProject])
+
+      if (error) {
+        alert("❌ Error submitting project: " + error.message)
+      } else {
+        alert("✅ Project submitted! Pending approval before it appears on the map.")
+        e.target.reset()
+      }
+    })
   </script>
 </body>
 </html>
