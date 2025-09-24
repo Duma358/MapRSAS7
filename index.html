@@ -50,6 +50,7 @@
     <form id="projectForm">
       <input type="text" name="title" placeholder="Project Title" required />
       <input type="text" name="location" placeholder="Location" required />
+      <input type="text" name="contact" placeholder="Contact" />
       <input type="number" step="any" name="lat" id="latInput" placeholder="Latitude" required readonly />
       <input type="number" step="any" name="lng" id="lngInput" placeholder="Longitude" required readonly />
       <input type="text" name="symbol" placeholder="Emoji symbol (🏥, 💉…)" />
@@ -94,6 +95,7 @@
           <div class="popup-content">
             <h3><span class="symbol">${proj.symbol || ""}</span>${proj.title}</h3>
             ${proj.location ? `<p><strong>Location:</strong> ${proj.location}</p>` : ""}
+            ${proj.contact ? `<p><strong>Contact:</strong> ${proj.contact}</p>` : ""}
             ${proj.gap ? `<p><strong>Gap:</strong> ${proj.gap}</p>` : ""}
             ${proj.idea ? `<p><strong>Idea:</strong> ${proj.idea}</p>` : ""}
             ${proj.support ? `<p><strong>Support:</strong> ${proj.support}</p>` : ""}
@@ -112,7 +114,6 @@
     map.on('click', (e) => {
       const { lat, lng } = e.latlng
 
-      // place / move temp marker
       if (tempMarker) {
         tempMarker.setLatLng([lat, lng])
       } else {
@@ -124,7 +125,6 @@
         })
       }
 
-      // update form fields
       document.getElementById("latInput").value = lat.toFixed(6)
       document.getElementById("lngInput").value = lng.toFixed(6)
     })
@@ -135,7 +135,6 @@
       const formData = new FormData(e.target)
       const newProject = Object.fromEntries(formData.entries())
 
-      // Convert lat/lng to numbers
       newProject.lat = parseFloat(newProject.lat)
       newProject.lng = parseFloat(newProject.lng)
 
