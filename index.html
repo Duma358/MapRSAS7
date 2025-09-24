@@ -24,7 +24,7 @@
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
       z-index: 1000;
-      width: 250px;
+      width: 260px;
       font-size: 14px;
     }
     #form-container h3 { margin-top: 0; }
@@ -49,10 +49,9 @@
     <h3>Submit Project</h3>
     <form id="projectForm">
       <input type="text" name="title" placeholder="Project Title" required />
-      <input type="text" name="province" placeholder="Province" required />
       <input type="text" name="location" placeholder="Location" required />
-      <input type="number" step="any" name="lat" placeholder="Latitude" required />
-      <input type="number" step="any" name="lng" placeholder="Longitude" required />
+      <input type="number" step="any" name="lat" id="latInput" placeholder="Latitude" required readonly />
+      <input type="number" step="any" name="lng" id="lngInput" placeholder="Longitude" required readonly />
       <input type="text" name="symbol" placeholder="Emoji symbol (🏥, 💉…)" />
       <textarea name="gap" placeholder="Gap"></textarea>
       <textarea name="idea" placeholder="Idea"></textarea>
@@ -60,7 +59,7 @@
       <textarea name="needs" placeholder="Needs"></textarea>
       <button type="submit">Submit</button>
     </form>
-    <small style="color:gray;">(New projects need approval before showing)</small>
+    <small style="color:gray;">Click on the map to set coordinates.<br>(New projects need approval before showing)</small>
   </div>
 
   <script>
@@ -75,6 +74,8 @@
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map)
+
+    let tempMarker = null
 
     // 📌 Load approved projects
     async function loadProjects() {
@@ -92,12 +93,11 @@
         const popup = `
           <div class="popup-content">
             <h3><span class="symbol">${proj.symbol || ""}</span>${proj.title}</h3>
-            <p><strong>Province:</strong> ${proj.province || ""}</p>
-            <p><strong>Location:</strong> ${proj.location || ""}</p>
-            <p><strong>Gap:</strong> ${proj.gap || ""}</p>
-            <p><strong>Idea:</strong> ${proj.idea || ""}</p>
-            <p><strong>Support:</strong> ${proj.support || ""}</p>
-            <p><strong>Needs:</strong> ${proj.needs || ""}</p>
+            ${proj.location ? `<p><strong>Location:</strong> ${proj.location}</p>` : ""}
+            ${proj.gap ? `<p><strong>Gap:</strong> ${proj.gap}</p>` : ""}
+            ${proj.idea ? `<p><strong>Idea:</strong> ${proj.idea}</p>` : ""}
+            ${proj.support ? `<p><strong>Support:</strong> ${proj.support}</p>` : ""}
+            ${proj.needs ? `<p><strong>Needs:</strong> ${proj.needs}</p>` : ""}
           </div>
         `
         if (proj.lat && proj.lng) {
@@ -107,6 +107,27 @@
     }
 
     loadProjects()
+
+    // 🖱️ Let user click to set coordinates
+    map.on('click', (e) => {
+      const { lat, lng } = e.latlng
+
+      // place / move temp marker
+      if (tempMarker) {
+        tempMarker.setLatLng([lat, lng])
+      } else {
+        tempMarker = L.marker([lat, lng], { draggable: true }).addTo(map)
+        tempMarker.on("dragend", () => {
+          const pos = tempMarker.getLatLng()
+          document.getElementById("latInput").value = pos.lat.toFixed(6)
+          document.getElementById("lngInput").value = pos.lng.toFixed(6)
+        })
+      }
+
+      // update form fields
+      document.getElementById("latInput").value = lat.toFixed(6)
+      document.getElementById("lngInput").value = lng.toFixed(6)
+    })
 
     // 📝 Handle submissions
     document.getElementById('projectForm').addEventListener('submit', async (e) => {
@@ -125,6 +146,12 @@
       } else {
         alert("✅ Project submitted! Pending approval before it appears on the map.")
         e.target.reset()
+        if (tempMarker) {
+          map.removeLayer(tempMarker)
+          tempMarker = null
+        }
+        document.getElementById("latInput").value = ""
+        document.getElementById("lngInput").value = ""
       }
     })
   </script>
